@@ -17,6 +17,10 @@ def get_info():
 
 #     touch(Template(r"tpl1768585707367.png", record_pos=(-0.005, 0.247), resolution=(550, 700)))
     touch(Template(r"tpl1768641604125.png", record_pos=(0.091, -0.182), resolution=(550, 700)))
+    sleep(0.05)
+
+    pyautogui.scroll(-90)
+
 
 
 
@@ -29,7 +33,7 @@ def get_info():
 
 
 
-    sleep(0.1)
+    sleep(0.05)
 
     for _ in range(3):
         pyautogui.scroll(-90)

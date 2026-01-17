@@ -114,11 +114,35 @@ def extract_data_from_image(
             if "```json" in text_content:
                 text_content = text_content.replace("```json", "").replace("```", "")
 
-            info = json.loads(text_content)["red_packets"]
+            parsed_json = json.loads(text_content)
+
+            # Attempt to locate the list of items
+            info = None
+            if isinstance(parsed_json, dict):
+                # 1. Try exact match
+                if "red_packets" in parsed_json:
+                    info = parsed_json["red_packets"]
+                # 2. Search for any list value if specific key is missing
+                else:
+                    for key, value in parsed_json.items():
+                        if isinstance(value, list):
+                            print(
+                                f"⚠️ Note: 'red_packets' key missing. Using '{key}' key."
+                            )
+                            info = value
+                            break
+            elif isinstance(parsed_json, list):
+                # 3. The root object itself is the list
+                info = parsed_json
+
+            if info is None:
+                raise ValueError("Cannot locate a valid data list in response.")
+
             data = []
             for i in range(len(info) - 1, -1, -1):
-                info[i]["ReceiveAmount"] = info[i]["ReceiveAmount"].replace("元", "")
-                data.append(float(info[i]["ReceiveAmount"]))
+                amount_str = info[i].get("ReceiveAmount", "0")
+                amount_str = str(amount_str).replace("元", "")
+                data.append(float(amount_str))
             return data
         except Exception as e:
             print(f"Error parsing data: {e}")

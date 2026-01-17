@@ -79,3 +79,4 @@ secrets.json
 *.pyo
 *.pyd
 *.egg
+tempCodeRunnerFile.*
