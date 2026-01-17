@@ -65,7 +65,7 @@ desktop.ini
 Output/
 
 # Image temp files
-Snapshots/*
+Snapshots/*.jpg
 GetInfo.air/*.png
 
 # Secrets

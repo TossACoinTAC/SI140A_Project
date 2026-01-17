@@ -12,6 +12,16 @@ OUTPUT_DIR = "Output/"
 
 
 def process_all_snapshots():
+    # Cleanup: Delete all temp generated .jpgs in Snapshots/
+    jpg_files = glob.glob(os.path.join("Snapshots", "*.jpg"))
+    if jpg_files:
+        print(f"Cleaning up {len(jpg_files)} .jpg files in Snapshots/...")
+        for f in jpg_files:
+            try:
+                os.remove(f)
+            except Exception as e:
+                print(f"Failed to delete {f}: {e}")
+
     snapshot_files = glob.glob(os.path.join("Snapshots", "info*.png"))
 
     snapshot_files.sort()

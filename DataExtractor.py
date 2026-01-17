@@ -6,7 +6,7 @@ import mimetypes
 LOCAL_DIFY_URL = "http://localhost"
 API_KEY = "app-5Wjz73iI02lHt23TiDULPkIL"
 USER_ID = "PositionZero"
-IMAGE_PATH = "./Snapshots/info0.png"
+# IMAGE_PATH = "./Snapshots/info0.png"
 # SAVE_PATH = "./result.json"
 
 
@@ -158,6 +158,9 @@ def extract_data_from_image(
 
 # ====== Main Execution ======
 if __name__ == "__main__":
-    data = extract_data_from_image(IMAGE_PATH)
-    if data:
-        print(data)
+    # No need to run anything directly here
+    pass
+
+    # data = extract_data_from_image(IMAGE_PATH)
+    # if data:
+    #     print(data)
