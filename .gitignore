@@ -62,8 +62,7 @@ desktop.ini
 *.sqlite3
 
 # Generated artifacts
-data_distribution.png
-result.json
+Output/
 
 # Image temp files
 Snapshots/*

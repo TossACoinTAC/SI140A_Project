@@ -1,11 +1,14 @@
 import os
 import glob
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 
 import DataExtractor
+
+OUTPUT_DIR = "Output/"
 
 
 def process_all_snapshots():
@@ -38,6 +41,15 @@ def process_all_snapshots():
 
     print(f"Collected data groups: {len(all_data)}")
 
+    # Save all_data to a JSON
+    output_json_path = os.path.join(OUTPUT_DIR, "all_data.json")
+    try:
+        with open(output_json_path, "w", encoding="utf-8") as f:
+            json.dump(all_data, f, ensure_ascii=False, indent=4)
+        print(f"All data saved to {output_json_path}")
+    except Exception as e:
+        print(f"Error saving data to file: {e}")
+
     # ========= Plotting =========
     plt.figure(figsize=(12, 6))
 
@@ -49,7 +61,13 @@ def process_all_snapshots():
     # Determine maximum dimension length
     max_len = max(len(d) for d in all_data) if all_data else 0
 
-    # Iterate through each dimension index (0 to max_len-1)
+    # Ensure output directory exists (if not created by JSON save)
+    if not os.path.exists(OUTPUT_DIR):
+        os.makedirs(OUTPUT_DIR)
+
+    # 1. Overlay Plot: Vertical Scatter (Index vs Value)
+    plt.figure(figsize=(12, 6))
+
     for dim_idx in range(max_len):
         values_at_dim = []
         # Collect values from all snapshots at this dimension index
@@ -59,8 +77,8 @@ def process_all_snapshots():
 
         # Plot these values at x = dim_idx
         if values_at_dim:
-            # Add random jitter to x coordinates to separate overlapping points
-            jitter = np.random.uniform(-0.05, 0.05, len(values_at_dim))
+            # Add random jitter to x coordinates
+            jitter = np.random.uniform(-0.1, 0.1, len(values_at_dim))
             x = np.array([dim_idx] * len(values_at_dim)) + jitter
 
             plt.scatter(
@@ -71,14 +89,54 @@ def process_all_snapshots():
                 label=f"Dim {dim_idx}" if dim_idx == 0 else "",
             )
 
-    plt.title("Extracted Data Distribution")
+    plt.title("All Value Distribution")
     plt.xlabel("Receiver Order Index")
     plt.ylabel("Value (元)")
     plt.xticks(range(max_len))
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-    plt.savefig("data_distribution.png")
-    print("Plot saved to data_distribution.png")
+    all_plot_path = os.path.join(OUTPUT_DIR, "all_value_distribution.png")
+    plt.savefig(all_plot_path)
+    print(f"Combined plot saved to {all_plot_path}")
+    plt.close()  # Close the main figure
+
+    # 2. Individual Plots: Horizontal Scatter (Value vs Jitter)
+    print("Generating individual plots...")
+
+    for dim_idx in range(max_len):
+        values_at_dim = []
+        for snapshot_data in all_data:
+            if dim_idx < len(snapshot_data):
+                values_at_dim.append(snapshot_data[dim_idx])
+
+        if not values_at_dim:
+            continue
+
+        plt.figure(figsize=(10, 4))
+
+        # Horizontal scatter: X = Values, Y = Random Jitter
+        # Jitter helps separate points if they strictly overlap in value
+        y_jitter = np.random.uniform(-0.1, 0.1, len(values_at_dim))
+
+        plt.scatter(values_at_dim, y_jitter, alpha=0.7, s=80, color="teal")
+
+        plt.title(
+            f"Distribution for Receiver # {dim_idx} (Count: {len(values_at_dim)})"
+        )
+        plt.xlabel("Value (元)")
+        plt.ylabel("")  # Jitter axis has no meaning
+        plt.yticks([])
+        plt.ylim(-0.5, 0.5)
+        plt.grid(axis="x", linestyle="--", alpha=0.7)
+
+        # Determine strict bounds or auto-scale
+        # plt.xlim(min_val, max_val) # Optional: Standardize axis if needed
+
+        filename = os.path.join(OUTPUT_DIR, f"Receiver_Index_{dim_idx}_scatter.png")
+        plt.savefig(filename)
+        plt.close()
+
+    print(f"Individual plots saved to {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
