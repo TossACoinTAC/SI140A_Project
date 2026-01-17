@@ -61,82 +61,83 @@ def process_all_snapshots():
     # Determine maximum dimension length
     max_len = max(len(d) for d in all_data) if all_data else 0
 
-    # Ensure output directory exists (if not created by JSON save)
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     # 1. Overlay Plot: Vertical Scatter (Index vs Value)
     plt.figure(figsize=(12, 6))
 
+    # 1. Prepare data by dimension
+    data_by_dimension = []
     for dim_idx in range(max_len):
-        values_at_dim = []
-        # Collect values from all snapshots at this dimension index
-        for snapshot_data in all_data:
-            if dim_idx < len(snapshot_data):
-                values_at_dim.append(snapshot_data[dim_idx])
+        values = [snap[dim_idx] for snap in all_data if dim_idx < len(snap)]
+        data_by_dimension.append(values)
 
-        # Plot these values at x = dim_idx
-        if values_at_dim:
+    # 2. Overlay Plot: Vertical Scatter (Index vs Value)
+    plt.figure(figsize=(12, 6))
+
+    for dim_idx, values in enumerate(data_by_dimension):
+        if values:
             # Add random jitter to x coordinates
-            jitter = np.random.uniform(-0.1, 0.1, len(values_at_dim))
-            x = np.array([dim_idx] * len(values_at_dim)) + jitter
+            jitter = np.random.uniform(-0.1, 0.1, len(values))
+            x = np.array([dim_idx] * len(values)) + jitter
 
             plt.scatter(
                 x,
-                values_at_dim,
+                values,
                 alpha=0.6,
                 s=50,
                 label=f"Dim {dim_idx}" if dim_idx == 0 else "",
             )
 
-    plt.title("All Value Distribution")
+    plt.title("All Value Distribution (Scatter)")
     plt.xlabel("Receiver Order Index")
     plt.ylabel("Value (元)")
     plt.xticks(range(max_len))
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-    all_plot_path = os.path.join(OUTPUT_DIR, "all_value_distribution.png")
+    all_plot_path = os.path.join(OUTPUT_DIR, "all_value_scatter.png")
     plt.savefig(all_plot_path)
     print(f"Combined plot saved to {all_plot_path}")
     plt.close()  # Close the main figure
 
-    # 2. Individual Plots: Horizontal Scatter (Value vs Jitter)
-    print("Generating individual plots...")
+    # 3. Overlay Plot: Vertical Boxplot (Index vs Value)
+    plt.figure(figsize=(12, 6))
+    plt.boxplot(data_by_dimension, tick_labels=range(max_len))
 
-    for dim_idx in range(max_len):
-        values_at_dim = []
-        for snapshot_data in all_data:
-            if dim_idx < len(snapshot_data):
-                values_at_dim.append(snapshot_data[dim_idx])
+    plt.title("All Value Distribution (Boxplot)")
+    plt.xlabel("Receiver Order Index")
+    plt.ylabel("Value (元)")
+    plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-        if not values_at_dim:
+    boxplot_path = os.path.join(OUTPUT_DIR, "all_value_boxplot.png")
+    plt.savefig(boxplot_path)
+    print(f"Boxplot saved to {boxplot_path}")
+    plt.close()
+
+    # 4. Individual Plots: Histogram (Value Distribution)
+    print("Generating individual histograms...")
+
+    for dim_idx, values in enumerate(data_by_dimension):
+        if not values:
             continue
 
-        plt.figure(figsize=(10, 4))
+        plt.figure(figsize=(10, 6))
 
-        # Horizontal scatter: X = Values, Y = Random Jitter
-        # Jitter helps separate points if they strictly overlap in value
-        y_jitter = np.random.uniform(-0.1, 0.1, len(values_at_dim))
-
-        plt.scatter(values_at_dim, y_jitter, alpha=0.7, s=80, color="teal")
+        plt.hist(values, bins=20, color="teal", alpha=0.7, edgecolor="black")
 
         plt.title(
-            f"Distribution for Receiver # {dim_idx} (Count: {len(values_at_dim)})"
+            f"Distribution Histogram for Receiver # {dim_idx} (Count: {len(values)})"
         )
         plt.xlabel("Value (元)")
-        plt.ylabel("")  # Jitter axis has no meaning
-        plt.yticks([])
-        plt.ylim(-0.5, 0.5)
-        plt.grid(axis="x", linestyle="--", alpha=0.7)
+        plt.ylabel("Frequency")
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-        # Determine strict bounds or auto-scale
-        # plt.xlim(min_val, max_val) # Optional: Standardize axis if needed
-
-        filename = os.path.join(OUTPUT_DIR, f"Receiver_Index_{dim_idx}_scatter.png")
+        filename = os.path.join(OUTPUT_DIR, f"Receiver_Index_{dim_idx}_hist.png")
         plt.savefig(filename)
         plt.close()
 
-    print(f"Individual plots saved to {OUTPUT_DIR}")
+    print(f"Individual histograms saved to {OUTPUT_DIR}")
 
 
 if __name__ == "__main__":
