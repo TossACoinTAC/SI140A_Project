@@ -1,5 +1,6 @@
 import os
 import glob
+import numpy as np
 import matplotlib.pyplot as plt
 
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
@@ -40,15 +41,40 @@ def process_all_snapshots():
     # ========= Plotting =========
     plt.figure(figsize=(12, 6))
 
-    # Scatter plot: x-axis is index of the group, y-axis is the value
-    for i, group_data in enumerate(all_data):
-        x = [i] * len(group_data)
-        plt.scatter(x, group_data, alpha=0.6, s=50)
+    # Data logic for plotting
+    # Example: all_data = [[A1, B1], [A2, B2], [A3, B3]]
+    # Index 0 (A): Values (A1, A2, A3)
+    # Index 1 (B): Values (B1, B2, B3)
 
-    plt.title("Extracted Data Distribution Details")
-    plt.xlabel("Snapshot Index")
+    # Determine maximum dimension length
+    max_len = max(len(d) for d in all_data) if all_data else 0
+
+    # Iterate through each dimension index (0 to max_len-1)
+    for dim_idx in range(max_len):
+        values_at_dim = []
+        # Collect values from all snapshots at this dimension index
+        for snapshot_data in all_data:
+            if dim_idx < len(snapshot_data):
+                values_at_dim.append(snapshot_data[dim_idx])
+
+        # Plot these values at x = dim_idx
+        if values_at_dim:
+            # Add random jitter to x coordinates to separate overlapping points
+            jitter = np.random.uniform(-0.05, 0.05, len(values_at_dim))
+            x = np.array([dim_idx] * len(values_at_dim)) + jitter
+
+            plt.scatter(
+                x,
+                values_at_dim,
+                alpha=0.6,
+                s=50,
+                label=f"Dim {dim_idx}" if dim_idx == 0 else "",
+            )
+
+    plt.title("Extracted Data Distribution")
+    plt.xlabel("Receiver Order Index")
     plt.ylabel("Value (元)")
-    plt.xticks(range(len(all_data)))
+    plt.xticks(range(max_len))
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
     plt.savefig("data_distribution.png")
