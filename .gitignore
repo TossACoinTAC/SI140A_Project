@@ -1,0 +1,81 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+env/
+venv/
+.venv/
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+coverage.xml
+htmlcov/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Virtual environment and env files
+.env
+.env.*
+env/
+venv/
+.venv/
+
+# Jupyter
+.ipynb_checkpoints
+
+# Type checkers
+.mypy_cache/
+.pyre/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Generated artifacts
+data_distribution.png
+result.json
+
+# Image temp files
+Snapshots/*
+GetInfo.air/*.png
+
+# Secrets
+*.key
+*.pem
+secrets.json
+
+# Misc
+*.pyc
+*.pyo
+*.pyd
+*.egg
