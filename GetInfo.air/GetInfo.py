@@ -13,7 +13,8 @@ import pyautogui
 
 
 def get_info():
-    touch(Template(r"tpl1768634078724.png", record_pos=(-0.184, -0.24), resolution=(550, 700)))
+    touch(Template(r"tpl1768658154473.png", record_pos=(-0.185, -0.249), resolution=(550, 700)))
+
 
 #     touch(Template(r"tpl1768585707367.png", record_pos=(-0.005, 0.247), resolution=(550, 700)))
     touch(Template(r"tpl1768641604125.png", record_pos=(0.091, -0.182), resolution=(550, 700)))
@@ -24,11 +25,13 @@ def get_info():
 
 
 
-    snapshot(filename=f"info{idx}.png", msg=f"info{idx}")
+    snapshot(filename=f"info{106+idx}.png", msg=f"info{idx}")
     touch(Template(r"tpl1768585836389.png", record_pos=(0.251, -0.545), resolution=(550, 700)))
    
 
-    touch(Template(r"tpl1768641700461.png", record_pos=(0.42, -0.342), resolution=(550, 700)))
+    touch(Template(r"tpl1768660703592.png", record_pos=(0.024, 0.336), resolution=(550, 700)))
+
+
 
 
 
@@ -39,7 +42,7 @@ def get_info():
         pyautogui.scroll(-90)
     
 
-red_packet_num=3
+red_packet_num=300
 
 for idx in range(red_packet_num):
     get_info()

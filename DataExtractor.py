@@ -24,7 +24,6 @@ def upload_file(file_path, user, base_url, api_key):
                 mime_type = "application/octet-stream"
 
             files = {"file": (os.path.basename(file_path), file, mime_type)}
-            # 注意：某些Dify版本上传图片时不需要type字段，或者根据实际情况调整
             data = {"user": user}
 
             response = requests.post(

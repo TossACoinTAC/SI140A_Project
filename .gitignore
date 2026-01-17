@@ -65,7 +65,7 @@ desktop.ini
 Output/
 
 # Image temp files
-Snapshots/*.jpg
+Snapshots/*
 GetInfo.air/*.png
 
 # Secrets
@@ -79,3 +79,4 @@ secrets.json
 *.pyd
 *.egg
 tempCodeRunnerFile.*
+*.zip
