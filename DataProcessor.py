@@ -8,8 +8,8 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 
 import DataExtractor
 
-OUTPUT_DIR = "Output/"
-DATABASE_DIR = "ProcessedData/"  # Acknowledged and manually transferred long-term data storage from OUTPUT_DIR
+PLOT_DIR = "Plots/Raw_Wechat/"
+DATABASE_DIR = "Database/"  # Acknowledged and manually transferred long-term data storage from OUTPUT_DIR
 
 
 def process_all_snapshots():
@@ -53,7 +53,7 @@ def process_all_snapshots():
     print(f"Collected data groups: {len(all_data)}")
 
     # Save all_data to a JSON
-    output_json_path = os.path.join(OUTPUT_DIR, "all_data.json")
+    output_json_path = os.path.join(DATABASE_DIR, "all_data.json")
     try:
         with open(output_json_path, "w", encoding="utf-8") as f:
             json.dump(all_data, f, ensure_ascii=False, indent=4)
@@ -73,8 +73,8 @@ def visualize_data(all_data):
     # Determine maximum dimension length
     max_len = max(len(d) for d in all_data) if all_data else 0
 
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
+    if not os.path.exists(PLOT_DIR):
+        os.makedirs(PLOT_DIR)
 
     # 1. Overlay Plot: Vertical Scatter (Index vs Value)
     plt.figure(figsize=(12, 6))
@@ -108,7 +108,7 @@ def visualize_data(all_data):
     plt.xticks(range(max_len))
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-    all_plot_path = os.path.join(OUTPUT_DIR, "all_value_scatter.png")
+    all_plot_path = os.path.join(PLOT_DIR, "all_value_scatter.png")
     plt.savefig(all_plot_path)
     print(f"Combined plot saved to {all_plot_path}")
     plt.close()  # Close the main figure
@@ -122,7 +122,7 @@ def visualize_data(all_data):
     plt.ylabel("Value (元)")
     plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-    boxplot_path = os.path.join(OUTPUT_DIR, "all_value_boxplot.png")
+    boxplot_path = os.path.join(PLOT_DIR, "all_value_boxplot.png")
     plt.savefig(boxplot_path)
     print(f"Boxplot saved to {boxplot_path}")
     plt.close()
@@ -145,16 +145,16 @@ def visualize_data(all_data):
         plt.ylabel("Frequency")
         plt.grid(axis="y", linestyle="--", alpha=0.7)
 
-        filename = os.path.join(OUTPUT_DIR, f"Receiver_Index_{dim_idx}_hist.png")
+        filename = os.path.join(PLOT_DIR, f"Receiver_Index_{dim_idx}_hist.png")
         plt.savefig(filename)
         plt.close()
 
-    print(f"Individual histograms saved to {OUTPUT_DIR}")
+    print(f"Individual histograms saved to {PLOT_DIR}")
 
 
 if __name__ == "__main__":
-    # Load all_data.json if it exists, otherwise process snapshots
-    data_path = os.path.join(DATABASE_DIR, "all_data.json")
+    # Load Wechat_Samples.json if it exists, otherwise process snapshots
+    data_path = os.path.join(DATABASE_DIR, "Wechat_Samples.json")
 
     if os.path.exists(data_path):
         print(f"Loading data from {data_path}...")

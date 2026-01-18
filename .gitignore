@@ -62,7 +62,7 @@ desktop.ini
 *.sqlite3
 
 # Generated artifacts
-Output/
+Plots/
 
 # Image temp files
 Snapshots/*
