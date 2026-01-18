@@ -155,11 +155,7 @@ def extract_data_from_image(
         return None
 
 
-# ====== Main Execution ======
-if __name__ == "__main__":
-    # No need to run anything directly here
-    pass
-
-    # data = extract_data_from_image(IMAGE_PATH)
-    # if data:
-    #     print(data)
+# if __name__ == "__main__":
+#     data = extract_data_from_image(IMAGE_PATH)
+#     if data:
+#         print(data)
