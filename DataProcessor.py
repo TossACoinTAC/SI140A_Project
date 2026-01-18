@@ -9,6 +9,7 @@ plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans"]
 import DataExtractor
 
 OUTPUT_DIR = "Output/"
+DATABASE_DIR = "ProcessedData/"  # Acknowledged and manually transferred long-term data storage from OUTPUT_DIR
 
 
 def process_all_snapshots():
@@ -60,7 +61,8 @@ def process_all_snapshots():
     except Exception as e:
         print(f"Error saving data to file: {e}")
 
-    # ========= Plotting =========
+
+def visualize_data(all_data):
     plt.figure(figsize=(12, 6))
 
     # Data logic for plotting
@@ -151,4 +153,19 @@ def process_all_snapshots():
 
 
 if __name__ == "__main__":
-    process_all_snapshots()
+    # Load all_data.json if it exists, otherwise process snapshots
+    data_path = os.path.join(DATABASE_DIR, "all_data.json")
+
+    if os.path.exists(data_path):
+        print(f"Loading data from {data_path}...")
+        try:
+            with open(data_path, "r", encoding="utf-8") as f:
+                all_data = json.load(f)
+            print(f"Loaded {len(all_data)} data groups from {data_path}")
+            visualize_data(all_data)
+        except Exception as e:
+            print(f"Error loading data from file: {e}")
+            print("Falling back to processing snapshots...")
+            process_all_snapshots()
+    else:
+        process_all_snapshots()
