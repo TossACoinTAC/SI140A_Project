@@ -85,6 +85,67 @@ def visualize_data(data, plots_dir):
 
     print(f"Individual histograms saved to {plots_dir}")
 
+    # Generate conditional histograms
+    visualize_conditional_histograms(data, plots_dir)
+
+
+def visualize_conditional_histograms(data, plots_dir):
+    print("Generating conditional histograms...")
+
+    max_len = max(len(d) for d in data) if data else 0
+
+    # k corresponds to dimensions X_k where k > 1 (1-based) => indices 1, 2, ...
+    for dim_idx in range(1, max_len):
+        pairs = []
+        for sample in data:
+            if dim_idx < len(sample):
+                # Sum of previous dimensions X_0 ... X_{k-1}
+                prev_sum = sum(sample[:dim_idx])
+                val = sample[dim_idx]
+                pairs.append((prev_sum, val))
+
+        if not pairs:
+            continue
+
+        sums = [p[0] for p in pairs]
+
+        # Determine the most frequent interval (mode) for the sums
+        if not sums:
+            continue
+
+        # Use bins='auto' or a fixed number large enough to validly capture the peak
+        counts, bin_edges = np.histogram(sums, bins="auto")
+        if len(counts) == 0:
+            continue
+
+        max_bin_idx = np.argmax(counts)
+        range_min = bin_edges[max_bin_idx]
+        range_max = bin_edges[max_bin_idx + 1]
+
+        # Filter X_k where sum is in this interval
+        # Note: np.histogram includes right edge for the last bin, but generally [a, b)
+        # We will use the edges directly.
+        filtered_values = [val for s, val in pairs if range_min <= s <= range_max]
+
+        if not filtered_values:
+            continue
+
+        plt.figure(figsize=(10, 6))
+        plt.hist(filtered_values, bins=20, color="purple", alpha=0.7, edgecolor="black")
+
+        plt.title(
+            f"Hist for X_{dim_idx} | Sum(X_0..X_{dim_idx-1}) in [{range_min:.2f}, {range_max:.2f}]"
+        )
+        plt.xlabel(f"X_{dim_idx} Value")
+        plt.ylabel("Frequency")
+        plt.grid(axis="y", linestyle="--", alpha=0.7)
+
+        filename = os.path.join(plots_dir, f"Dim_{dim_idx}_cond_hist.png")
+        plt.savefig(filename)
+        plt.close()
+
+    print(f"Conditional histograms saved to {plots_dir}")
+
 
 if __name__ == "__main__":
     data_path = os.path.join(DATABASE_DIR, "Wechat_Samples.json")
