@@ -2,7 +2,7 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import ks_2samp, ttest_ind, mannwhitneyu
+from scipy.stats import ks_2samp, chisquare, ttest_ind
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -16,118 +16,42 @@ print(f"Real data: {len(real_data)} groups, {len(real_data_flat)} individual amo
 print(f"Real data range: {real_data_flat.min():.2f} ~ {real_data_flat.max():.2f}")
 print(f"Real data mean: {real_data_flat.mean():.2f}, std: {real_data_flat.std():.2f}")
 
-# 检查实际数据的最小值
-print(f"Real data minimum positive amount: {real_data_flat[real_data_flat > 0].min():.2f}")
-
-# ==================== 2. Define Simulation Function with Discrete Constraints ====================
-def simulate_one_group(total=50, n=6, min_amount=0.01):
-    """
-    模拟一个微信红包分组
-    total: 总金额（元）
-    n: 人数
-    min_amount: 最小金额（元），微信为0.01元
-    """
-    # 转换为分，便于整数运算
-    total_cents = int(total * 100)
-    min_cents = int(min_amount * 100)
-    
-    amounts_cents = []
-    remaining = total_cents
-    
-    # 确保每人至少获得最小金额
-    remaining_after_min = remaining - n * min_cents
-    if remaining_after_min < 0:
-        raise ValueError("总金额不足以分配给所有人最小金额")
-    
+# ==================== 2. Define Simulation Function ====================
+def simulate_one_group(total=50, n=6):
+    amounts = []
+    remaining = total
     for i in range(n - 1):
-        # 确保剩余人数都能获得最小金额
-        available_max = remaining - (n - i - 1) * min_cents
-        
-        # 计算平均剩余金额（以分为单位）
         avg_remaining = remaining / (n - i)
-        
-        # 在 [min_cents, min(2*avg_remaining, available_max)] 范围内均匀分布
-        lower_bound = min_cents
-        upper_bound = min(int(2 * avg_remaining), available_max)
-        
-        # 确保上界不小于下界
-        if upper_bound < lower_bound:
-            upper_bound = lower_bound
-            
-        # 随机抽取整数金额（分）
-        draw_cents = np.random.randint(lower_bound, upper_bound + 1)
-        
-        amounts_cents.append(draw_cents)
-        remaining -= draw_cents
-    
-    # 最后一个人获得剩余金额，但至少为最小金额
-    amounts_cents.append(max(remaining, min_cents))
-    
-    # 转换回元
-    amounts = [cents / 100 for cents in amounts_cents]
-    
-    # 验证总和
-    total_check = sum(amounts_cents) / 100
-    if abs(total_check - total) > 0.01:
-        # 调整最后一个人的金额使总和正确
-        adjustment = int((total * 100) - sum(amounts_cents[:-1]))
-        amounts_cents[-1] = max(adjustment, min_cents)
-        amounts[-1] = amounts_cents[-1] / 100
-    
+        draw = np.random.uniform(0, 2 * avg_remaining)
+        amounts.append(draw)
+        remaining -= draw
+    amounts.append(remaining)  # last person gets the rest
     return amounts
 
-def simulate_many_groups(num_groups=200, total=50, n=6, min_amount=0.01):
+def simulate_many_groups(num_groups=200, total=50, n=6):
     groups = []
     for _ in range(num_groups):
-        groups.append(simulate_one_group(total, n, min_amount))
+        groups.append(simulate_one_group(total, n))
     return groups
 
 # ==================== 3. Generate Simulated Data ====================
 np.random.seed(42)
-print("\nGenerating simulated data with discrete constraints...")
-simulated_data = simulate_many_groups(num_groups=200, total=50, n=6, min_amount=0.01)
+simulated_data = simulate_many_groups(num_groups=200, total=50, n=6)
 simulated_data_flat = np.array(simulated_data).flatten()
-print(f"Simulated data: {len(simulated_data)} groups, {len(simulated_data_flat)} individual amounts")
+print(f"\nSimulated data: {len(simulated_data)} groups, {len(simulated_data_flat)} individual amounts")
 print(f"Simulated data range: {simulated_data_flat.min():.2f} ~ {simulated_data_flat.max():.2f}")
 print(f"Simulated data mean: {simulated_data_flat.mean():.2f}, std: {simulated_data_flat.std():.2f}")
-print(f"Simulated data minimum positive amount: {simulated_data_flat.min():.2f}")
 
-# 检查模拟数据是否包含0值
-zero_count = np.sum(simulated_data_flat == 0)
-print(f"Zero amounts in simulated data: {zero_count}")
-
-# ==================== 4. Detailed Statistical Comparison ====================
-print("\n" + "="*50)
-print("Detailed Statistical Comparison")
-print("="*50)
-
-# 基本统计量
-print("\nBasic Statistics:")
-print(f"{'Statistic':<15} {'Real':<10} {'Simulated':<10} {'Difference':<10}")
-print("-" * 55)
-print(f"{'Mean':<15} {real_data_flat.mean():<10.4f} {simulated_data_flat.mean():<10.4f} {abs(real_data_flat.mean()-simulated_data_flat.mean()):<10.4f}")
-print(f"{'Std Dev':<15} {real_data_flat.std():<10.4f} {simulated_data_flat.std():<10.4f} {abs(real_data_flat.std()-simulated_data_flat.std()):<10.4f}")
-print(f"{'Median':<15} {np.median(real_data_flat):<10.4f} {np.median(simulated_data_flat):<10.4f} {abs(np.median(real_data_flat)-np.median(simulated_data_flat)):<10.4f}")
-print(f"{'Min':<15} {real_data_flat.min():<10.4f} {simulated_data_flat.min():<10.4f} {abs(real_data_flat.min()-simulated_data_flat.min()):<10.4f}")
-print(f"{'Max':<15} {real_data_flat.max():<10.4f} {simulated_data_flat.max():<10.4f} {abs(real_data_flat.max()-simulated_data_flat.max()):<10.4f}")
-print(f"{'Q1':<15} {np.percentile(real_data_flat, 25):<10.4f} {np.percentile(simulated_data_flat, 25):<10.4f} {abs(np.percentile(real_data_flat, 25)-np.percentile(simulated_data_flat, 25)):<10.4f}")
-print(f"{'Q3':<15} {np.percentile(real_data_flat, 75):<10.4f} {np.percentile(simulated_data_flat, 75):<10.4f} {abs(np.percentile(real_data_flat, 75)-np.percentile(simulated_data_flat, 75)):<10.4f}")
-
-# ==================== 5. Visualization ====================
+# ==================== 4. Visualization ====================
 fig, axes = plt.subplots(2, 3, figsize=(15, 10))
 
-# Histograms with discrete bins
-# 创建以分为单位的bins
-bins_cents = np.arange(0, 4100, 100) / 100  # 从0到41元，每0.01元一个bin
-axes[0, 0].hist(real_data_flat, bins=bins_cents, alpha=0.7, color='blue', 
-                label='Real', density=True, edgecolor='black', linewidth=0.5)
-axes[0, 0].hist(simulated_data_flat, bins=bins_cents, alpha=0.7, color='orange', 
-                label='Simulated', density=True, edgecolor='black', linewidth=0.5)
-axes[0, 0].set_title('Histogram Comparison (Discrete, Density)')
+# Histograms
+axes[0, 0].hist(real_data_flat, bins=30, alpha=0.7, color='blue', label='Real', density=True)
+axes[0, 0].hist(simulated_data_flat, bins=30, alpha=0.7, color='orange', label='Simulated', density=True)
+axes[0, 0].set_title('Histogram Comparison (Density)')
 axes[0, 0].set_xlabel('Amount (RMB)')
 axes[0, 0].set_ylabel('Density')
 axes[0, 0].legend()
-axes[0, 0].set_xlim(0, 40)
 
 # Boxplots
 box_data = [real_data_flat, simulated_data_flat]
@@ -149,313 +73,177 @@ axes[0, 2].set_title('ECDF Comparison')
 axes[0, 2].set_xlabel('Amount (RMB)')
 axes[0, 2].set_ylabel('Cumulative Probability')
 axes[0, 2].legend()
-axes[0, 2].set_xlim(0, 40)
 
-# Scatter of group totals with jitter
+# Scatter of group totals
 real_totals = [sum(g) for g in real_data]
 sim_totals = [sum(g) for g in simulated_data]
-# 添加轻微抖动以避免重叠
-jitter_real = np.random.normal(0, 0.1, len(real_totals))
-jitter_sim = np.random.normal(0, 0.1, len(sim_totals))
-axes[1, 0].scatter(np.arange(len(real_totals)) + jitter_real, real_totals, 
-                   alpha=0.6, label='Real', color='blue', s=20)
-axes[1, 0].scatter(np.arange(len(sim_totals)) + jitter_sim, sim_totals, 
-                   alpha=0.6, label='Simulated', color='orange', s=20)
-axes[1, 0].axhline(y=50, color='red', linestyle='--', alpha=0.5, label='Expected total=50')
-axes[1, 0].set_title('Total Amount per Group (with jitter)')
+axes[1, 0].scatter(range(len(real_totals)), real_totals, alpha=0.6, label='Real', color='blue')
+axes[1, 0].scatter(range(len(sim_totals)), sim_totals, alpha=0.6, label='Simulated', color='orange')
+axes[1, 0].set_title('Total Amount per Group')
 axes[1, 0].set_xlabel('Group Index')
 axes[1, 0].set_ylabel('Total Amount (RMB)')
 axes[1, 0].legend()
-axes[1, 0].set_ylim(49, 51)
 
 # QQ plot
 quantiles = np.linspace(0.01, 0.99, 100)
 real_quantiles = np.quantile(real_data_flat, quantiles)
 sim_quantiles = np.quantile(simulated_data_flat, quantiles)
-axes[1, 1].scatter(real_quantiles, sim_quantiles, alpha=0.7, s=20)
+axes[1, 1].scatter(real_quantiles, sim_quantiles, alpha=0.7)
 axes[1, 1].plot([real_quantiles.min(), real_quantiles.max()],
-                [real_quantiles.min(), real_quantiles.max()], 'r--', alpha=0.7)
+                [real_quantiles.min(), real_quantiles.max()], 'r--')
 axes[1, 1].set_title('QQ Plot (Real vs Simulated)')
-axes[1, 1].set_xlabel('Real Quantiles (RMB)')
-axes[1, 1].set_ylabel('Simulated Quantiles (RMB)')
-axes[1, 1].set_xlim(0, 40)
-axes[1, 1].set_ylim(0, 40)
+axes[1, 1].set_xlabel('Real Quantiles')
+axes[1, 1].set_ylabel('Simulated Quantiles')
 
-# Distribution of amounts within groups (first 10 groups)
-axes[1, 2].violinplot(real_data[:10], positions=range(1, 11), 
-                      showmeans=True, showextrema=True)
-axes[1, 2].violinplot(simulated_data[:10], positions=np.arange(1.3, 11.3), 
-                      showmeans=True, showextrema=True)
-axes[1, 2].set_title('Distribution within First 10 Groups')
-axes[1, 2].set_xlabel('Group Index')
-axes[1, 2].set_ylabel('Amount (RMB)')
-axes[1, 2].set_xticks(range(1, 11))
-axes[1, 2].legend(['Real', 'Simulated'], loc='upper right')
+# Kernel Density Estimate
+sns.kdeplot(real_data_flat, ax=axes[1, 2], label='Real', fill=True, alpha=0.5, color='blue')
+sns.kdeplot(simulated_data_flat, ax=axes[1, 2], label='Simulated', fill=True, alpha=0.5, color='orange')
+axes[1, 2].set_title('KDE Comparison')
+axes[1, 2].set_xlabel('Amount (RMB)')
+axes[1, 2].set_ylabel('Density')
+axes[1, 2].legend()
 
 plt.tight_layout()
 plt.show()
 
-# ==================== 6. Statistical Tests ====================
+# ==================== 5. Statistical Tests ====================
 print("\n" + "="*50)
 print("Statistical Tests for Distribution Comparison")
 print("="*50)
 
-# 1. Kolmogorov-Smirnov test
+# Kolmogorov-Smirnov test
 ks_stat, ks_p = ks_2samp(real_data_flat, simulated_data_flat)
-print(f"\n1. Kolmogorov-Smirnov Test (Two-sample):")
-print(f"   KS statistic = {ks_stat:.6f}")
-print(f"   p-value = {ks_p:.6f}")
+print(f"Kolmogorov-Smirnov Test:")
+print(f"  KS statistic = {ks_stat:.4f}")
+print(f"  p-value = {ks_p:.4f}")
 if ks_p > 0.05:
-    print(f"   → Cannot reject H0: Same distribution (p > 0.05)")
-    print(f"   Interpretation: The two samples likely come from the same distribution")
+    print("  → Cannot reject H0: Same distribution (p > 0.05)")
 else:
-    print(f"   → Reject H0: Different distributions (p ≤ 0.05)")
-    print(f"   Interpretation: The two samples likely come from different distributions")
+    print("  → Reject H0: Different distributions (p ≤ 0.05)")
 
-# 2. Two-sample t-test (Welch's t-test)
+# Chi-square test
+print(f"\nChi-square Goodness-of-fit Test:")
+bins = np.linspace(0, 40, 15)
+real_hist, bin_edges = np.histogram(real_data_flat, bins=bins)
+sim_hist, _ = np.histogram(simulated_data_flat, bins=bins)
+
+# 确保没有零频数
+real_hist = np.where(real_hist == 0, 0.5, real_hist)
+sim_hist = np.where(sim_hist == 0, 0.5, sim_hist)
+
+# 计算模拟数据的概率分布
+sim_probs = sim_hist / np.sum(sim_hist)
+
+# 计算期望频数：模拟数据的概率分布 × 真实数据的总样本数
+expected_freq = sim_probs * np.sum(real_hist)
+
+# 调整期望频数以确保总和完全一致
+expected_freq = expected_freq * (np.sum(real_hist) / np.sum(expected_freq))
+
+print(f"  Real data total: {np.sum(real_hist)}")
+print(f"  Expected total: {np.sum(expected_freq)}")
+print(f"  Difference: {np.abs(np.sum(real_hist) - np.sum(expected_freq)):.10f}")
+
+# 检查是否有足够的数据进行卡方检验
+valid_mask = expected_freq >= 5
+if np.sum(valid_mask) >= 3:
+    # 使用有效区间
+    real_hist_valid = real_hist[valid_mask]
+    expected_freq_valid = expected_freq[valid_mask]
+    
+    # 再次确保总和一致
+    expected_freq_valid = expected_freq_valid * (np.sum(real_hist_valid) / np.sum(expected_freq_valid))
+    
+    try:
+        chi2_stat, chi2_p = chisquare(f_obs=real_hist_valid, f_exp=expected_freq_valid)
+        print(f"  Chi2 statistic = {chi2_stat:.4f}")
+        print(f"  p-value = {chi2_p:.4f}")
+        print(f"  Degrees of freedom = {len(real_hist_valid) - 1}")
+        print(f"  Number of bins used = {len(real_hist_valid)}")
+        
+        if chi2_p > 0.05:
+            print("  → Cannot reject H0: Good fit (p > 0.05)")
+        else:
+            print("  → Reject H0: Poor fit (p ≤ 0.05)")
+    except Exception as e:
+        print(f"  Chi-square test failed: {e}")
+        chi2_stat, chi2_p = None, None
+else:
+    print("  Skipped: insufficient bins with expected frequency ≥ 5")
+    print(f"  Valid bins: {np.sum(valid_mask)} (need at least 3)")
+    chi2_stat, chi2_p = None, None
+
+# Two-sample t-test for means
 t_stat, t_p = ttest_ind(real_data_flat, simulated_data_flat, equal_var=False)
-print(f"\n2. Welch's t-test (for means):")
-print(f"   t-statistic = {t_stat:.6f}")
-print(f"   p-value = {t_p:.6f}")
+print(f"\nWelch's t-test for means:")
+print(f"  t-statistic = {t_stat:.4f}")
+print(f"  p-value = {t_p:.4f}")
 if t_p > 0.05:
-    print(f"   → Cannot reject H0: Same mean (p > 0.05)")
-    print(f"   Interpretation: No significant difference in means")
+    print("  → Cannot reject H0: Same mean (p > 0.05)")
 else:
-    print(f"   → Reject H0: Different means (p ≤ 0.05)")
-    print(f"   Interpretation: Significant difference in means")
-print(f"   Mean difference: {real_data_flat.mean() - simulated_data_flat.mean():.6f}")
+    print("  → Reject H0: Different means (p ≤ 0.05)")
 
-# 3. Mann-Whitney U test (non-parametric)
-u_stat, u_p = mannwhitneyu(real_data_flat, simulated_data_flat, alternative='two-sided')
-print(f"\n3. Mann-Whitney U test (non-parametric):")
-print(f"   U statistic = {u_stat:.0f}")
-print(f"   p-value = {u_p:.6f}")
-if u_p > 0.05:
-    print(f"   → Cannot reject H0: Same distribution (p > 0.05)")
-    print(f"   Interpretation: No significant difference in distributions")
-else:
-    print(f"   → Reject H0: Different distributions (p ≤ 0.05)")
-    print(f"   Interpretation: Significant difference in distributions")
+# Additional descriptive statistics
+print(f"\nDescriptive Statistics:")
+real_skew = np.mean((real_data_flat - real_data_flat.mean())**3) / (real_data_flat.std()**3)
+sim_skew = np.mean((simulated_data_flat - simulated_data_flat.mean())**3) / (simulated_data_flat.std()**3)
+real_kurt = np.mean((real_data_flat - real_data_flat.mean())**4) / (real_data_flat.std()**4)
+sim_kurt = np.mean((simulated_data_flat - simulated_data_flat.mean())**4) / (simulated_data_flat.std()**4)
 
-# ==================== 7. Analysis of Discrete Nature ====================
+print(f"  Real data skewness: {real_skew:.4f}")
+print(f"  Simulated data skewness: {sim_skew:.4f}")
+print(f"  Real data kurtosis: {real_kurt:.4f}")
+print(f"  Simulated data kurtosis: {sim_kurt:.4f}")
+
+# ==================== 6. Conclusion ====================
 print("\n" + "="*50)
-print("Analysis of Discrete Nature")
-print("="*50)
-
-# 检查金额的小数部分
-real_decimals = real_data_flat * 100 % 100
-sim_decimals = simulated_data_flat * 100 % 100
-
-print(f"\nDecimal part analysis (in cents):")
-print(f"Real data - Unique decimal values: {len(np.unique(real_decimals))}")
-print(f"Simulated data - Unique decimal values: {len(np.unique(sim_decimals))}")
-
-# 检查是否都是0.01的倍数
-real_is_multiple = np.all(np.abs(real_decimals - np.round(real_decimals)) < 0.001)
-sim_is_multiple = np.all(np.abs(sim_decimals - np.round(sim_decimals)) < 0.001)
-print(f"\nCheck for multiples of 0.01:")
-print(f"Real data all multiples of 0.01: {bool(real_is_multiple)}")
-print(f"Simulated data all multiples of 0.01: {bool(sim_is_multiple)}")
-
-# 检查最小值
-print(f"\nMinimum amount analysis:")
-print(f"Real data minimum: {real_data_flat.min():.2f}")
-print(f"Simulated data minimum: {simulated_data_flat.min():.2f}")
-print(f"Both ≥ 0.01: {bool(real_data_flat.min() >= 0.01 and simulated_data_flat.min() >= 0.01)}")
-
-# 检查是否有0值
-print(f"\nZero value check:")
-real_zero_count = np.sum(real_data_flat == 0)
-sim_zero_count = np.sum(simulated_data_flat == 0)
-print(f"Real data zeros: {real_zero_count}")
-print(f"Simulated data zeros: {sim_zero_count}")
-
-# ==================== 8. Distribution Shape Analysis ====================
-print("\n" + "="*50)
-print("Distribution Shape Analysis")
-print("="*50)
-
-# 偏度和峰度
-from scipy.stats import skew, kurtosis
-real_skew = skew(real_data_flat)
-real_kurt = kurtosis(real_data_flat)
-sim_skew = skew(simulated_data_flat)
-sim_kurt = kurtosis(simulated_data_flat)
-
-print(f"\nShape statistics:")
-print(f"{'Statistic':<15} {'Real':<10} {'Simulated':<10} {'Difference':<10}")
-print("-" * 55)
-print(f"{'Skewness':<15} {real_skew:<10.4f} {sim_skew:<10.4f} {abs(real_skew-sim_skew):<10.4f}")
-print(f"{'Kurtosis':<15} {real_kurt:<10.4f} {sim_kurt:<10.4f} {abs(real_kurt-sim_kurt):<10.4f}")
-
-print(f"\nInterpretation:")
-print(f"Skewness: {'Positive (right-skewed)' if real_skew > 0 else 'Negative (left-skewed)' if real_skew < 0 else 'Symmetric'}")
-print(f"Kurtosis: {'Leptokurtic (heavy-tailed)' if real_kurt > 0 else 'Platykurtic (light-tailed)' if real_kurt < 0 else 'Mesokurtic (normal-like)'}")
-
-# ==================== 9. Conclusion ====================
-print("\n" + "="*50)
-print("FINAL CONCLUSION")
+print("Conclusion")
 print("="*50)
 
 # 综合评估
-tests_passed = 0
-total_tests = 3
+test_results = {}
+test_results["KS_test"] = ks_p > 0.05
+test_results["T_test"] = t_p > 0.05
 
-if ks_p > 0.05: tests_passed += 1
-if t_p > 0.05: tests_passed += 1
-if u_p > 0.05: tests_passed += 1
-
-print(f"\nModel Performance: {tests_passed}/{total_tests} statistical tests passed")
-
-if tests_passed >= 2:  # 多数通过
-    print("\n✓ The discrete 0-2×avg uniform model provides a REASONABLE fit")
-    print("  to the WeChat Red Envelope data.")
-    print("\nKey successful aspects:")
-    print("  1. Preserves the discrete nature (multiples of 0.01) ✓")
-    print("  2. Ensures minimum amount of 0.01 for all recipients ✓")
-    print("  3. Maintains total amount of exactly 50 RMB per group ✓")
-    print("  4. Passes majority of statistical similarity tests ✓")
-    
-    if tests_passed == 3:
-        print("\nExcellent fit: All 3 statistical tests indicate similarity!")
-    elif tests_passed == 2:
-        print("\nGood fit: 2 out of 3 statistical tests indicate similarity.")
+if chi2_p is not None:
+    test_results["Chi2_test"] = chi2_p > 0.05
+    passed_tests = sum(test_results.values())
+    total_tests = len(test_results)
 else:
-    print("\n✗ The model shows SIGNIFICANT differences from WeChat data.")
-    print("  Only {tests_passed}/3 statistical tests passed.")
+    # 如果没有卡方检验结果，只考虑其他测试
+    passed_tests = sum(test_results.values())
+    total_tests = len(test_results)
+
+if total_tests > 0:
+    pass_rate = passed_tests / total_tests
     
-print(f"\nStatistical test results:")
-print(f"  1. Kolmogorov-Smirnov test: {'PASS' if ks_p > 0.05 else 'FAIL'} (p={ks_p:.4f})")
-print(f"  2. Welch's t-test: {'PASS' if t_p > 0.05 else 'FAIL'} (p={t_p:.4f})")
-print(f"  3. Mann-Whitney U test: {'PASS' if u_p > 0.05 else 'FAIL'} (p={u_p:.4f})")
-
-print(f"\nPractical implications:")
-print(f"  - Model captures the basic mechanics of WeChat Red Envelope")
-print(f"  - Suitable for educational purposes and basic simulations")
-print(f"  - May need refinement for exact replication of WeChat's algorithm")
-
-# ==================== 10. Save Results ====================
-print("\n" + "="*50)
-print("Saving Results")
-print("="*50)
-
-# Helper function to convert numpy types to Python native types
-def convert_to_python_types(obj):
-    if isinstance(obj, (np.integer, np.floating)):
-        return obj.item()
-    elif isinstance(obj, np.ndarray):
-        return obj.tolist()
-    elif isinstance(obj, np.bool_):
-        return bool(obj)
-    elif isinstance(obj, dict):
-        return {key: convert_to_python_types(value) for key, value in obj.items()}
-    elif isinstance(obj, (list, tuple)):
-        return [convert_to_python_types(item) for item in obj]
+    if pass_rate >= 0.75:  # 通过75%以上的测试
+        print("The simulated data (0–2×avg uniform model) is statistically consistent")
+        print("with the provided WeChat Red Envelope sample data.")
+        print("The model reasonably captures the underlying random mechanism.")
+    elif pass_rate >= 0.5:  # 通过50%以上的测试
+        print("The simulated data shows moderate similarity to the WeChat data.")
+        print("The 0–2×avg uniform model captures some aspects but may need refinement.")
+        print("Possible factors: rounding, minimum amounts, or correlation between draws.")
     else:
-        return obj
-
-# Save simulated data
-simulated_data_python = convert_to_python_types(simulated_data)
-with open('simulated_red_envelopes_discrete.json', 'w') as f:
-    json.dump(simulated_data_python, f, indent=2)
-print("✓ Simulated data saved to 'simulated_red_envelopes_discrete.json'")
-
-# Save summary statistics
-summary = {
-    "real_data_stats": {
-        "n_groups": len(real_data),
-        "n_amounts": len(real_data_flat),
-        "mean": float(real_data_flat.mean()),
-        "std": float(real_data_flat.std()),
-        "min": float(real_data_flat.min()),
-        "max": float(real_data_flat.max()),
-        "median": float(np.median(real_data_flat)),
-        "skewness": float(real_skew),
-        "kurtosis": float(real_kurt)
-    },
-    "simulated_data_stats": {
-        "n_groups": len(simulated_data),
-        "n_amounts": len(simulated_data_flat),
-        "mean": float(simulated_data_flat.mean()),
-        "std": float(simulated_data_flat.std()),
-        "min": float(simulated_data_flat.min()),
-        "max": float(simulated_data_flat.max()),
-        "median": float(np.median(simulated_data_flat)),
-        "skewness": float(sim_skew),
-        "kurtosis": float(sim_kurt)
-    },
-    "test_results": {
-        "kolmogorov_smirnov": {
-            "statistic": float(ks_stat), 
-            "p_value": float(ks_p), 
-            "passed": bool(ks_p > 0.05)
-        },
-        "welch_t_test": {
-            "statistic": float(t_stat), 
-            "p_value": float(t_p), 
-            "passed": bool(t_p > 0.05)
-        },
-        "mann_whitney_u": {
-            "statistic": float(u_stat), 
-            "p_value": float(u_p), 
-            "passed": bool(u_p > 0.05)
-        }
-    },
-    "discrete_nature_validation": {
-        "real_is_multiple_of_0_01": bool(real_is_multiple),
-        "simulated_is_multiple_of_0_01": bool(sim_is_multiple),
-        "real_min_amount": float(real_data_flat.min()),
-        "simulated_min_amount": float(simulated_data_flat.min()),
-        "real_zero_count": int(real_zero_count),
-        "simulated_zero_count": int(sim_zero_count)
-    }
-}
-
-summary_python = convert_to_python_types(summary)
-with open('simulation_results_summary.json', 'w') as f:
-    json.dump(summary_python, f, indent=2)
-print("✓ Summary statistics saved to 'simulation_results_summary.json'")
-
-# Save test results in CSV format
-import csv
-with open('test_results.csv', 'w', newline='') as f:
-    writer = csv.writer(f)
-    writer.writerow(['Test', 'Statistic', 'p-value', 'Passed (p>0.05)', 'Interpretation'])
+        print("The simulated data does NOT match the provided WeChat data closely.")
+        print("The actual WeChat mechanism likely differs significantly from the simple")
+        print("0–2×avg uniform model. Consider more complex modeling approaches.")
     
-    writer.writerow([
-        'Kolmogorov-Smirnov', 
-        f"{ks_stat:.6f}", 
-        f"{ks_p:.6f}", 
-        'Yes' if ks_p > 0.05 else 'No',
-        'Same distribution' if ks_p > 0.05 else 'Different distribution'
-    ])
-    
-    writer.writerow([
-        "Welch's t-test", 
-        f"{t_stat:.6f}", 
-        f"{t_p:.6f}", 
-        'Yes' if t_p > 0.05 else 'No',
-        'Same mean' if t_p > 0.05 else 'Different mean'
-    ])
-    
-    writer.writerow([
-        'Mann-Whitney U', 
-        f"{u_stat:.0f}", 
-        f"{u_p:.6f}", 
-        'Yes' if u_p > 0.05 else 'No',
-        'Same distribution' if u_p > 0.05 else 'Different distribution'
-    ])
-    
-print("✓ Test results saved to 'test_results.csv'")
+    print(f"\nTest results summary ({passed_tests}/{total_tests} tests passed):")
+    for test, result in test_results.items():
+        status = "PASS" if result else "FAIL"
+        print(f"  {test}: {status}")
+else:
+    print("Insufficient test results for conclusion.")
 
-print("\n" + "="*50)
-print("ANALYSIS COMPLETE")
-print("="*50)
-print(f"\nSummary: The discrete uniform model (0-2×avg with min=0.01) shows")
-print(f"{'good' if tests_passed >= 2 else 'limited'} similarity to WeChat data.")
-print(f"\nKey findings:")
-print(f"1. Discrete nature correctly implemented")
-print(f"2. Minimum amount constraint satisfied")
-print(f"3. Statistical similarity: {tests_passed}/3 tests passed")
-print(f"\nThe model is {'suitable' if tests_passed >= 2 else 'not suitable'} for")
-print(f"simulating WeChat Red Envelope behavior in educational contexts.")
+print(f"\nKey differences:")
+print(f"  Real data mean: {real_data_flat.mean():.2f}, Simulated mean: {simulated_data_flat.mean():.2f}")
+print(f"  Real data std: {real_data_flat.std():.2f}, Simulated std: {simulated_data_flat.std():.2f}")
+print(f"  Real data min: {real_data_flat.min():.2f}, Simulated min: {simulated_data_flat.min():.2f}")
+print(f"  Real data max: {real_data_flat.max():.2f}, Simulated max: {simulated_data_flat.max():.2f}")
+
+# ==================== 7. Save Simulated Data (Optional) ====================
+with open('simulated_red_envelopes.json', 'w') as f:
+    json.dump(simulated_data, f, indent=2)
+print("\nSimulated data saved to 'simulated_red_envelopes.json'")
