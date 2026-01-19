@@ -1,0 +1,4 @@
+Test,Statistic,p-value,Passed (p>0.05),Interpretation
+Kolmogorov-Smirnov,0.035903,0.310521,Yes,Same distribution
+Welch's t-test,0.000000,1.000000,Yes,Same mean
+Mann-Whitney U,1037346,0.892350,Yes,Same distribution
